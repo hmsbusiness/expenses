@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hollis Montessori — Expense Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f7f7;
+    --bg3: #efefef;
+    --border: #e0e0e0;
+    --border2: #cccccc;
+    --text: #1a1a1a;
+    --text2: #555555;
+    --text3: #888888;
+    --accent: #1a1a1a;
+    --success-bg: #f0faf3;
+    --success-border: #a8d5b5;
+    --success-text: #1e6e3a;
+    --info-bg: #eff6ff;
+    --info-text: #1d4ed8;
+    --radius: 8px;
+    --radius-sm: 5px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f2f2f2;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  .wrapper {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .site-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .site-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .site-header p {
+    font-size: 14px;
+    color: var(--text2);
+  }
+
+  .tab-bar {
+    display: flex;
+    border-bottom: 1.5px solid var(--border);
+    margin-bottom: 20px;
+    gap: 0;
+  }
+  .tab {
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 18px;
+    cursor: pointer;
+    color: var(--text2);
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1.5px;
+    font-family: inherit;
+    transition: color .15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 14px;
+  }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .field-row.single { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 13px; font-weight: 500; color: var(--text2); }
+  .field input, .field select, .field textarea {
+    font-size: 14px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: #666; }
+  .field textarea { resize: vertical; min-height: 72px; }
+  .field .hint { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .expense-header {
+    display: grid;
+    grid-template-columns: 1.2fr 1.6fr 1.1fr 0.9fr 1fr 36px;
+    gap: 6px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .expense-header span { font-size: 11px; color: var(--text3); font-weight: 600; }
+
+  .expense-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.6fr 1.1fr 0.9fr 1fr 36px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .expense-row input, .expense-row select {
+    font-size: 13px;
+    padding: 6px 8px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    font-family: inherit;
+    outline: none;
+  }
+  .expense-row input:focus, .expense-row select:focus { border-color: #666; }
+
+  .mileage-header {
+    display: grid;
+    grid-template-columns: 1.6fr 1.2fr 0.9fr 1fr 1fr 36px;
+    gap: 6px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .mileage-header span { font-size: 11px; color: var(--text3); font-weight: 600; }
+
+  .mileage-row {
+    display: grid;
+    grid-template-columns: 1.6fr 1.2fr 0.9fr 1fr 1fr 36px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .mileage-row input {
+    font-size: 13px;
+    padding: 6px 8px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    font-family: inherit;
+    outline: none;
+  }
+  .mileage-row input:focus { border-color: #666; }
+
+  .del-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .15s, background .15s;
+  }
+  .del-btn:hover { color: #c00; background: #fff0f0; }
+
+  .add-row-btn {
+    font-size: 13px;
+    color: var(--text2);
+    background: none;
+    border: 1px dashed var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    width: 100%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-family: inherit;
+    transition: background .15s;
+  }
+  .add-row-btn:hover { background: var(--bg2); border-style: solid; }
+
+  .mileage-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+  .mileage-toggle-row label { font-size: 14px; color: var(--text); cursor: pointer; user-select: none; }
+  .mileage-toggle-row input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+
+  .mileage-rate-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 10px;
+    padding: 8px 12px;
+    background: var(--bg2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+  .mileage-rate-row label { font-size: 13px; color: var(--text2); white-space: nowrap; font-weight: 500; }
+  .mileage-rate-row input {
+    font-size: 13px;
+    padding: 4px 8px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text);
+    width: 80px;
+    font-family: inherit;
+    outline: none;
+  }
+  .mileage-rate-row span { font-size: 13px; color: var(--text3); }
+
+  .totals {
+    display: flex;
+    justify-content: flex-end;
+    gap: 2rem;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 10px;
+  }
+  .totals .lbl { font-size: 13px; color: var(--text2); margin-bottom: 2px; }
+  .totals .val { font-size: 16px; font-weight: 600; color: var(--text); }
+
+  .upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .upload-zone:hover, .upload-zone.drag { background: var(--bg2); border-color: #999; }
+  .upload-zone .icon { font-size: 28px; color: var(--text3); margin-bottom: 8px; }
+  .upload-zone p { font-size: 14px; color: var(--text2); }
+  .upload-zone small { font-size: 12px; color: var(--text3); }
+
+  .file-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .file-item .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .file-item .fsize { color: var(--text3); font-size: 12px; }
+  .badge {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-img { background: #f0faf3; color: #1e6e3a; }
+  .badge-pdf { background: var(--info-bg); color: var(--info-text); }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .footer-left { flex: 1; min-width: 0; }
+  .status-msg { font-size: 13px; color: var(--text2); }
+  .progress-bar { height: 4px; background: var(--bg3); border-radius: 2px; margin-top: 8px; overflow: hidden; display: none; }
+  .progress-bar-inner { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s; }
+
+  .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: var(--bg);
+    color: var(--text);
+    font-family: inherit;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg2); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { opacity: .88; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .success-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--success-text);
+    margin-bottom: 16px;
+  }
+
+  /* Config & guide styles */
+  .code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.65;
+    margin: 10px 0 6px;
+  }
+  .copy-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border2);
+    background: var(--bg);
+    color: var(--text2);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s;
+  }
+  .copy-btn:hover { background: var(--bg2); }
+
+  .step { display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start; }
+  .step-num {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .step p { font-size: 14px; color: var(--text2); line-height: 1.65; }
+  .step p strong { font-weight: 600; color: var(--text); }
+  .step p a { color: var(--info-text); }
+  .step p code { font-family: monospace; font-size: 12px; background: var(--bg2); padding: 1px 5px; border-radius: 3px; }
+
+  @media (max-width: 560px) {
+    .expense-header, .expense-row { grid-template-columns: 1fr 1fr; }
+    .expense-header span:nth-child(n+3), .expense-row *:nth-child(n+3):not(:last-child) { display: none; }
+    .mileage-header, .mileage-row { grid-template-columns: 1fr 1fr; }
+    .mileage-header span:nth-child(n+3), .mileage-row *:nth-child(n+3):not(:last-child) { display: none; }
+    .field-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="site-header">
+    <h1>Hollis Montessori School</h1>
+    <p>Expense Report Submission</p>
+  </div>
+
+  <div class="success-banner" id="successBanner">
+    <span>✓</span><span id="successMsg"></span>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('form',this)">Submit Expense</button>
+    <button class="tab" onclick="switchTab('config',this)">Configuration</button>
+    <button class="tab" onclick="switchTab('guide',this)">Setup Guide</button>
+  </div>
+
+  <!-- ═══════════════ FORM ═══════════════ -->
+  <div class="pane active" id="pane-form">
+
+    <div class="card">
+      <div class="section-title">Employee Information</div>
+      <div class="field-row">
+        <div class="field"><label>Full name</label><input type="text" id="empName" placeholder="Jane Smith"></div>
+        <div class="field"><label>Email</label><input type="email" id="empEmail" placeholder="jane@hollismontessori.org"></div>
+      </div>
+      <div class="field-row single">
+        <div class="field"><label>Classroom / Admin</label><input type="text" id="empDept" placeholder="Room 4B or Administration"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Report title</label><input type="text" id="reportTitle" placeholder="e.g. Spring Classroom Supplies"></div>
+        <div class="field"><label>Period</label><input type="month" id="reportPeriod"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Expense Line Items</div>
+      <div class="expense-header">
+        <span>Merchant</span><span>Description</span><span>Category</span><span>Date</span><span>Amount (USD)</span><span></span>
+      </div>
+      <div id="expenseRows"></div>
+      <button class="add-row-btn" onclick="addRow()">＋ Add expense</button>
+
+      <div class="mileage-toggle-row">
+        <input type="checkbox" id="mileageToggle" onchange="toggleMileage()">
+        <label for="mileageToggle">Do you need to report mileage expenses?</label>
+      </div>
+      <div id="mileageSection" style="display:none">
+        <div class="mileage-rate-row">
+          <span>🚗</span>
+          <label>Mileage rate</label>
+          <input type="number" id="mileageRate" value="0.70" min="0" step="0.01" oninput="calcTotals()">
+          <span>per mile — enter miles and amount is calculated automatically</span>
+        </div>
+        <div class="mileage-header">
+          <span>Purpose</span><span>From / To</span><span>Date</span><span>Miles</span><span>Amount</span><span></span>
+        </div>
+        <div id="mileageRows"></div>
+        <button class="add-row-btn" onclick="addMileageRow()">＋ Add mileage trip</button>
+      </div>
+
+      <div class="totals">
+        <div><div class="lbl">Subtotal</div><div class="val" id="subtotal">$0.00</div></div>
+        <div><div class="lbl">Total</div><div class="val" id="total">$0.00</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Receipts &amp; Attachments</div>
+      <div class="upload-zone" id="dropzone"
+           onclick="document.getElementById('fileInput').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <div class="icon">📎</div>
+        <p>Click or drag files here</p>
+        <small>JPG &amp; PNG will be embedded in the PDF summary · PDF receipts will be listed as Drive links</small>
+      </div>
+      <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFiles(this.files)">
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Notes &amp; Purpose</div>
+      <div class="field-row single">
+        <div class="field"><label>Business purpose / notes</label><textarea id="notes" placeholder="Describe the purpose of these expenses…"></textarea></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">
+        <div class="status-msg" id="statusMsg"></div>
+        <div class="progress-bar" id="progressBar"><div class="progress-bar-inner" id="progressBarInner" style="width:0%"></div></div>
+      </div>
+      <div class="btn-group">
+        <button class="btn" onclick="clearForm()">Clear</button>
+        <button class="btn" id="previewBtn" onclick="previewPDF()">Preview PDF</button>
+        <button class="btn primary" id="submitBtn" onclick="submitReport()">Submit &amp; Download PDF</button>
+      </div>
+    </div>
+
+  </div><!-- /pane-form -->
+
+  <!-- ═══════════════ CONFIG ═══════════════ -->
+  <div class="pane" id="pane-config">
+
+    <div class="card">
+      <div class="section-title">Google Sheets</div>
+      <div class="field-row single">
+        <div class="field">
+          <label>Spreadsheet ID</label>
+          <input type="text" id="sheetId" placeholder="Paste the ID from your Sheet's URL">
+          <span class="hint">Found in the URL: docs.google.com/spreadsheets/d/<strong>THIS-PART</strong>/edit</span>
+        </div>
+      </div>
+      <div class="field-row single">
+        <div class="field"><label>Sheet name / range</label><input type="text" id="sheetRange" value="Expenses!A:Z"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Google Drive — Receipt Folder</div>
+      <div class="field-row single">
+        <div class="field">
+          <label>Destination folder ID <span style="font-weight:400;color:var(--text3)">(optional)</span></label>
+          <input type="text" id="folderId" placeholder="Leave blank to use root Drive folder">
+          <span class="hint">Found in the folder URL: drive.google.com/drive/folders/<strong>THIS-PART</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Email Notifications — Apps Script</div>
+      <div class="field-row single">
+        <div class="field">
+          <label>Apps Script Web App URL</label>
+          <input type="text" id="appsScriptUrl" placeholder="https://script.google.com/macros/s/…/exec">
+          <span class="hint">See the Setup Guide tab for how to create this (one-time, 5 min setup)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Google OAuth</div>
+      <div class="field-row single">
+        <div class="field">
+          <label>Google API Client ID</label>
+          <input type="text" id="clientId" placeholder="123456789-abc.apps.googleusercontent.com">
+          <span class="hint">From Google Cloud Console → APIs &amp; Services → Credentials</span>
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:12px">
+        <button class="btn" onclick="startOAuth()">Authenticate with Google</button>
+        <span id="authStatus" style="font-size:13px;color:var(--text2)"></span>
+      </div>
+    </div>
+
+    <div class="footer" style="justify-content:flex-end">
+      <button class="btn primary" onclick="saveConfig()">Save Configuration</button>
+    </div>
+
+  </div><!-- /pane-config -->
+
+  <!-- ═══════════════ GUIDE ═══════════════ -->
+  <div class="pane" id="pane-guide">
+
+    <div class="card">
+      <div class="section-title">Part 1 — Google Cloud &amp; OAuth Setup</div>
+      <div class="step"><span class="step-num">1</span><p>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> and create a new project.</p></div>
+      <div class="step"><span class="step-num">2</span><p>Go to <strong>APIs &amp; Services → Library</strong> and enable both the <strong>Google Sheets API</strong> and the <strong>Google Drive API</strong>.</p></div>
+      <div class="step"><span class="step-num">3</span><p>Go to <strong>APIs &amp; Services → Credentials → Create Credentials → OAuth 2.0 Client ID</strong>. Set type to <strong>Web application</strong>.</p></div>
+      <div class="step"><span class="step-num">4</span><p>Under <strong>Authorized JavaScript origins</strong>, add your Google Sites URL (e.g. <code>https://sites.google.com</code>). Copy the <strong>Client ID</strong> and paste it into Configuration.</p></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Part 2 — Google Sheet Setup</div>
+      <div class="step"><span class="step-num">1</span><p>Create a new Google Sheet. Add a tab called <strong>Expenses</strong>.</p></div>
+      <div class="step"><span class="step-num">2</span><p>In row 1, add these headers exactly:</p></div>
+      <div class="code-block">Timestamp | Name | Email | Classroom/Admin | Report Title | Period | Merchant | Description | Category | Date | Miles | Amount | Notes | Receipts</div>
+      <div class="step" style="margin-top:10px"><span class="step-num">3</span><p>Copy the Sheet ID from the URL and paste it into <strong>Configuration → Spreadsheet ID</strong>.</p></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Part 3 — Email Notifications via Apps Script</div>
+      <div class="step"><span class="step-num">1</span><p>Go to <a href="https://script.google.com" target="_blank">script.google.com</a> and click <strong>New project</strong>.</p></div>
+      <div class="step"><span class="step-num">2</span><p>Delete any existing code and paste the script below, then click <strong>Save</strong>.</p></div>
+      <div class="code-block" id="appsScriptCode">function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+
+    var recipients = [
+      "office@hollismontessori.org",
+      "sshor@hollismontessori.org"
+    ];
+
+    var subject = "New Expense Report: " + (data.title || "Untitled")
+                + " — " + (data.name || "Unknown");
+
+    var body = "A new expense report has been submitted.\n\n"
+      + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+      + "Submitted by:    " + (data.name || "—") + "\n"
+      + "Email:           " + (data.email || "—") + "\n"
+      + "Classroom/Admin: " + (data.dept || "—") + "\n"
+      + "Report title:    " + (data.title || "—") + "\n"
+      + "Period:          " + (data.period || "—") + "\n"
+      + "Submitted:       " + (data.submittedAt || "—") + "\n"
+      + "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+
+    if (data.expenseItems && data.expenseItems.length) {
+      body += "EXPENSES\n";
+      data.expenseItems.forEach(function(r) {
+        body += "  • " + (r.merchant || "—") + " | " + (r.desc || "—")
+              + " | " + r.cat + " | " + r.date
+              + " | $" + parseFloat(r.amount || 0).toFixed(2) + "\n";
+      });
+      body += "\n";
+    }
+
+    if (data.mileageItems && data.mileageItems.length) {
+      body += "MILEAGE\n";
+      data.mileageItems.forEach(function(r) {
+        body += "  • " + (r.desc || "—") + " | " + (r.merchant || "—")
+              + " | " + r.date + " | " + r.miles
+              + " mi | $" + parseFloat(r.amount || 0).toFixed(2) + "\n";
+      });
+      body += "\n";
+    }
+
+    body += "TOTAL: $" + parseFloat(data.total || 0).toFixed(2) + "\n\n";
+
+    if (data.notes) {
+      body += "NOTES\n" + data.notes + "\n\n";
+    }
+
+    if (data.driveLinks && data.driveLinks.length) {
+      body += "RECEIPT LINKS\n";
+      data.driveLinks.forEach(function(l) {
+        body += "  • " + l.name + ": " + l.url + "\n";
+      });
+    }
+
+    body += "\n— Hollis Montessori Expense Report System";
+
+    MailApp.sendEmail({
+      to: recipients.join(","),
+      subject: subject,
+      body: body
+    });
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "ok" }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: "error", message: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</div>
+      <button class="copy-btn" onclick="copyScript()">Copy script</button>
+      <div style="margin-top:16px">
+        <div class="step"><span class="step-num">3</span><p>Click <strong>Deploy → New deployment</strong>. Set type to <strong>Web app</strong>, Execute as: <strong>Me</strong>, Who has access: <strong>Anyone</strong>. Click Deploy and authorize.</p></div>
+        <div class="step"><span class="step-num">4</span><p>Copy the <strong>Web app URL</strong> (ends in <code>/exec</code>) and paste it into <strong>Configuration → Apps Script Web App URL</strong>.</p></div>
+        <div class="step"><span class="step-num">5</span><p>Done — every submission will notify <strong>office@hollismontessori.org</strong> and <strong>sshor@hollismontessori.org</strong> automatically.</p></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Part 4 — Embedding in Google Sites</div>
+      <div class="step"><span class="step-num">1</span><p>Upload this HTML file to a web host (GitHub Pages, Netlify, etc.) or use it directly if your host supports HTML files.</p></div>
+      <div class="step"><span class="step-num">2</span><p>In Google Sites, click <strong>Insert → Embed</strong> and paste the URL of your hosted file.</p></div>
+      <div class="step"><span class="step-num">3</span><p>Make sure the hosted URL is added as an <strong>Authorized JavaScript origin</strong> in your Google Cloud OAuth credentials.</p></div>
+    </div>
+
+  </div><!-- /pane-guide -->
+
+</div><!-- /wrapper -->
+
+<script>
+// ── state ──────────────────────────────────────────────────────────────────
+let rows = [], mileageRowIds = [], files = [], accessToken = null, tokenClient = null;
+const cfg = { sheetId:'', sheetRange:'Expenses!A:Z', folderId:'', clientId:'', appsScriptUrl:'' };
+const CATEGORIES = ['Classroom Materials','Field Trips','Hospitality','Schoolwide','Building Supplies','Office Supplies','Fundraising','Other'];
+
+// ── tabs ───────────────────────────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pane-' + name).classList.add('active');
+}
+
+// ── config ─────────────────────────────────────────────────────────────────
+function saveConfig() {
+  cfg.sheetId        = document.getElementById('sheetId').value.trim();
+  cfg.sheetRange     = document.getElementById('sheetRange').value.trim() || 'Expenses!A:Z';
+  cfg.folderId       = document.getElementById('folderId').value.trim();
+  cfg.clientId       = document.getElementById('clientId').value.trim();
+  cfg.appsScriptUrl  = document.getElementById('appsScriptUrl').value.trim();
+  showSuccess('Configuration saved.');
+}
+
+// ── OAuth ──────────────────────────────────────────────────────────────────
+function startOAuth() {
+  if (!cfg.clientId) { document.getElementById('authStatus').textContent = 'Enter Client ID first.'; return; }
+  if (!window.google) {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = initOAuth;
+    document.head.appendChild(s);
+  } else { initOAuth(); }
+}
+function initOAuth() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: cfg.clientId,
+    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+    callback: (resp) => {
+      if (resp.access_token) {
+        accessToken = resp.access_token;
+        document.getElementById('authStatus').textContent = '✓ Authenticated';
+      }
+    }
+  });
+  tokenClient.requestAccessToken();
+}
+
+// ── expense rows ───────────────────────────────────────────────────────────
+function getMileageRate() { return parseFloat(document.getElementById('mileageRate').value) || 0.70; }
+
+function addRow() {
+  const id = 'row-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  rows.push(id);
+  const div = document.createElement('div');
+  div.className = 'expense-row'; div.id = id;
+  div.innerHTML = `
+    <input type="text" placeholder="Merchant" class="r-merchant">
+    <input type="text" placeholder="Description" class="r-desc">
+    <select class="r-cat">${CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select>
+    <input type="date" class="r-date">
+    <input type="number" min="0" step="0.01" placeholder="0.00" class="r-amount" oninput="calcTotals()">
+    <button class="del-btn" onclick="removeRow('${id}')" title="Remove">✕</button>`;
+  document.getElementById('expenseRows').appendChild(div);
+  calcTotals();
+}
+function removeRow(id) { document.getElementById(id)?.remove(); rows = rows.filter(r => r !== id); calcTotals(); }
+
+// ── mileage rows ───────────────────────────────────────────────────────────
+function toggleMileage() {
+  const show = document.getElementById('mileageToggle').checked;
+  document.getElementById('mileageSection').style.display = show ? 'block' : 'none';
+  if (show && mileageRowIds.length === 0) addMileageRow();
+  calcTotals();
+}
+function addMileageRow() {
+  const id = 'mi-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  mileageRowIds.push(id);
+  const div = document.createElement('div');
+  div.className = 'mileage-row'; div.id = id;
+  div.innerHTML = `
+    <input type="text" placeholder="Purpose" class="r-desc">
+    <input type="text" placeholder="From / To" class="r-fromto">
+    <input type="date" class="r-date">
+    <input type="number" min="0" step="0.1" placeholder="0" class="r-miles" oninput="updateMileageAmt('${id}')">
+    <input type="text" class="r-amount" readonly style="background:var(--bg2);color:var(--text2)" placeholder="$0.00">
+    <button class="del-btn" onclick="removeMileageRow('${id}')" title="Remove">✕</button>`;
+  document.getElementById('mileageRows').appendChild(div);
+  calcTotals();
+}
+function updateMileageAmt(id) {
+  const row = document.getElementById(id);
+  const miles = parseFloat(row.querySelector('.r-miles').value) || 0;
+  row.querySelector('.r-amount').value = miles > 0 ? '$' + (miles * getMileageRate()).toFixed(2) : '';
+  calcTotals();
+}
+function removeMileageRow(id) { document.getElementById(id)?.remove(); mileageRowIds = mileageRowIds.filter(r => r !== id); calcTotals(); }
+
+function calcTotals() {
+  let sum = 0;
+  document.querySelectorAll('#expenseRows .r-amount').forEach(i => { sum += parseFloat(i.value) || 0; });
+  if (document.getElementById('mileageToggle').checked) {
+    const rate = getMileageRate();
+    document.querySelectorAll('#mileageRows .r-miles').forEach(i => { sum += (parseFloat(i.value) || 0) * rate; });
+  }
+  const fmt = '$' + sum.toFixed(2);
+  document.getElementById('subtotal').textContent = fmt;
+  document.getElementById('total').textContent = fmt;
+}
+
+// ── file handling ──────────────────────────────────────────────────────────
+function handleFiles(fl) { Array.from(fl).forEach(f => { if (!files.find(x => x.name === f.name)) files.push(f); }); renderFiles(); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('dropzone').classList.remove('drag'); handleFiles(e.dataTransfer.files); }
+function removeFile(i) { files.splice(i, 1); renderFiles(); }
+function renderFiles() {
+  document.getElementById('fileList').innerHTML = files.map((f, i) => {
+    const isPDF = f.type === 'application/pdf';
+    const badge = isPDF
+      ? '<span class="badge badge-pdf">PDF · linked</span>'
+      : '<span class="badge badge-img">Image · embedded</span>';
+    return `<div class="file-item">
+      <span>📄</span>
+      <span class="fname">${f.name}</span>
+      ${badge}
+      <span class="fsize">${(f.size / 1024).toFixed(0)} KB</span>
+      <button class="del-btn" onclick="removeFile(${i})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── collect form data ──────────────────────────────────────────────────────
+function collectData() {
+  const rate = getMileageRate();
+  const expenseItems = Array.from(document.querySelectorAll('#expenseRows .expense-row')).map(row => ({
+    merchant: row.querySelector('.r-merchant').value,
+    desc: row.querySelector('.r-desc').value,
+    cat: row.querySelector('.r-cat').value,
+    date: row.querySelector('.r-date').value,
+    miles: '',
+    amount: parseFloat(row.querySelector('.r-amount').value) || 0
+  }));
+  const mileageItems = document.getElementById('mileageToggle').checked
+    ? Array.from(document.querySelectorAll('#mileageRows .mileage-row')).map(row => {
+        const miles = parseFloat(row.querySelector('.r-miles').value) || 0;
+        return { merchant: row.querySelector('.r-fromto').value, desc: row.querySelector('.r-desc').value, cat: 'Mileage', date: row.querySelector('.r-date').value, miles, amount: +(miles * rate).toFixed(2) };
+      })
+    : [];
+  const total = [...expenseItems, ...mileageItems].reduce((s, r) => s + r.amount, 0);
+  return {
+    name: document.getElementById('empName').value.trim(),
+    email: document.getElementById('empEmail').value.trim(),
+    dept: document.getElementById('empDept').value.trim(),
+    title: document.getElementById('reportTitle').value.trim(),
+    period: document.getElementById('reportPeriod').value,
+    notes: document.getElementById('notes').value.trim(),
+    expenseItems, mileageItems, total,
+    submittedAt: new Date().toLocaleString()
+  };
+}
+
+// ── PDF ────────────────────────────────────────────────────────────────────
+function readFileAsDataURL(file) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+}
+
+async function buildPDF(data, imageFiles, pdfFiles, driveLinks) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+  const W = 215.9, M = 18, CW = W - M * 2;
+  let y = M;
+  const sf = (style, size, color = [40, 40, 40]) => { doc.setFont('helvetica', style); doc.setFontSize(size); doc.setTextColor(...color); };
+  const ln = (x1, y1, x2, y2, color = [210, 210, 210], w = 0.3) => { doc.setDrawColor(...color); doc.setLineWidth(w); doc.line(x1, y1, x2, y2); };
+  const chk = (need = 10) => { if (y + need > 275) { doc.addPage(); y = M; } };
+  const fmtDate = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+  const fmtAmt = a => a ? '$' + a.toFixed(2) : '—';
+
+  // Header
+  doc.setFillColor(25, 25, 25);
+  doc.rect(0, 0, W, 30, 'F');
+  sf('bold', 16, [255, 255, 255]); doc.text('Hollis Montessori School', M, 13);
+  sf('normal', 10, [200, 200, 200]); doc.text('Expense Report', M, 20);
+  sf('normal', 8, [160, 160, 160]); doc.text('Submitted ' + data.submittedAt, W - M, 20, { align: 'right' });
+  y = 40;
+
+  // Employee info
+  const half = CW / 2 + 2;
+  sf('bold', 8, [130, 130, 130]); doc.text('EMPLOYEE', M, y); doc.text('REPORT DETAILS', M + half, y); y += 4;
+  ln(M, y, W - M, y); y += 5;
+  const iL = [['Name', data.name], ['Email', data.email], ['Classroom / Admin', data.dept]];
+  const iR = [['Report Title', data.title || '—'], ['Period', data.period || '—']];
+  for (let i = 0; i < Math.max(iL.length, iR.length); i++) {
+    chk(7);
+    if (iL[i]) { sf('bold', 8, [110, 110, 110]); doc.text(iL[i][0], M, y); sf('normal', 9, [30, 30, 30]); doc.text(iL[i][1] || '—', M, y + 4); }
+    if (iR[i]) { sf('bold', 8, [110, 110, 110]); doc.text(iR[i][0], M + half, y); sf('normal', 9, [30, 30, 30]); doc.text(iR[i][1] || '—', M + half, y + 4); }
+    y += 10;
+  }
+  y += 2; ln(M, y, W - M, y); y += 7;
+
+  const drawTH = cols => {
+    doc.setFillColor(245, 245, 245); doc.rect(M, y - 4, CW, 7, 'F');
+    sf('bold', 8, [80, 80, 80]); let cx = M + 2;
+    cols.forEach(c => { doc.text(c.label, cx, y); cx += c.w; });
+    y += 4; ln(M, y, W - M, y, [200, 200, 200], 0.4); y += 3;
+  };
+
+  if (data.expenseItems.length) {
+    sf('bold', 10, [30, 30, 30]); doc.text('Expenses', M, y); y += 6;
+    const cols = [{ label: 'Merchant', w: 38 }, { label: 'Description', w: 48 }, { label: 'Category', w: 38 }, { label: 'Date', w: 28 }, { label: 'Amount', w: 20 }];
+    drawTH(cols);
+    data.expenseItems.forEach((item, idx) => {
+      chk(8);
+      if (idx % 2 === 0) { doc.setFillColor(251, 251, 251); doc.rect(M, y - 3, CW, 7, 'F'); }
+      sf('normal', 8, [40, 40, 40]); let cx = M + 2;
+      [item.merchant || '—', item.desc || '—', item.cat, fmtDate(item.date), fmtAmt(item.amount)].forEach((v, ci) => { doc.text(String(v), cx, y); cx += cols[ci].w; });
+      y += 7;
+    }); y += 2;
+  }
+
+  if (data.mileageItems.length) {
+    chk(20); sf('bold', 10, [30, 30, 30]); doc.text('Mileage', M, y); y += 6;
+    const mc = [{ label: 'Purpose', w: 48 }, { label: 'From / To', w: 48 }, { label: 'Date', w: 28 }, { label: 'Miles', w: 20 }, { label: 'Amount', w: 20 }];
+    drawTH(mc);
+    data.mileageItems.forEach((item, idx) => {
+      chk(8);
+      if (idx % 2 === 0) { doc.setFillColor(251, 251, 251); doc.rect(M, y - 3, CW, 7, 'F'); }
+      sf('normal', 8, [40, 40, 40]); let cx = M + 2;
+      [item.desc || '—', item.merchant || '—', fmtDate(item.date), item.miles ? item.miles + ' mi' : '—', fmtAmt(item.amount)].forEach((v, ci) => { doc.text(String(v), cx, y); cx += mc[ci].w; });
+      y += 7;
+    });
+    sf('italic', 8, [120, 120, 120]); doc.text('Mileage rate: $' + getMileageRate().toFixed(2) + '/mile', M, y); y += 6;
+  }
+
+  // Total
+  chk(14); ln(M, y, W - M, y, [200, 200, 200], 0.4); y += 5;
+  doc.setFillColor(25, 25, 25); doc.rect(W - M - 46, y - 4, 46, 10, 'F');
+  sf('bold', 9, [255, 255, 255]); doc.text('TOTAL', W - M - 42, y + 2); doc.text('$' + data.total.toFixed(2), W - M - 4, y + 2, { align: 'right' });
+  y += 14;
+
+  // Notes
+  if (data.notes) {
+    chk(16); sf('bold', 8, [130, 130, 130]); doc.text('NOTES', M, y); y += 4; ln(M, y, W - M, y); y += 5;
+    sf('normal', 9, [40, 40, 40]);
+    doc.splitTextToSize(data.notes, CW).forEach(l => { chk(6); doc.text(l, M, y); y += 5; }); y += 4;
+  }
+
+  // Embedded images
+  if (imageFiles.length) {
+    chk(16); sf('bold', 8, [130, 130, 130]); doc.text('RECEIPTS — IMAGES', M, y); y += 4; ln(M, y, W - M, y); y += 6;
+    for (const f of imageFiles) {
+      const dataUrl = await readFileAsDataURL(f);
+      const props = doc.getImageProperties(dataUrl);
+      const scale = Math.min(CW / props.width, 120 / props.height, 1);
+      const iw = props.width * scale, ih = props.height * scale;
+      chk(ih + 14); sf('bold', 8, [80, 80, 80]); doc.text(f.name, M, y); y += 4;
+      doc.addImage(dataUrl, M, y, iw, ih); y += ih + 8;
+      ln(M, y, W - M, y, [230, 230, 230]); y += 5;
+    }
+  }
+
+  // PDF receipt links
+  if (pdfFiles.length) {
+    chk(16); sf('bold', 8, [130, 130, 130]); doc.text('RECEIPTS — PDF ATTACHMENTS', M, y); y += 4; ln(M, y, W - M, y); y += 6;
+    pdfFiles.forEach((f, i) => {
+      chk(12); sf('bold', 9, [40, 40, 40]); doc.text((i + 1) + '. ' + f.name, M, y);
+      const link = driveLinks[f.name];
+      if (link) { sf('normal', 8, [80, 120, 200]); doc.textWithLink('View on Google Drive →', M, y + 5, { url: link }); y += 12; }
+      else { sf('italic', 8, [140, 140, 140]); doc.text('(submit to Google Drive to generate link)', M, y + 5); y += 12; }
+    });
+  }
+
+  // Page footers
+  const pc = doc.getNumberOfPages();
+  for (let p = 1; p <= pc; p++) {
+    doc.setPage(p); ln(M, 282, W - M, 282, [200, 200, 200]);
+    sf('normal', 7, [160, 160, 160]);
+    doc.text((data.name || '') + (data.title ? ' · ' + data.title : ''), M, 286);
+    doc.text('Page ' + p + ' of ' + pc, W - M, 286, { align: 'right' });
+  }
+  return doc;
+}
+
+// ── email notification ─────────────────────────────────────────────────────
+async function sendEmailNotification(data, driveLinks) {
+  if (!cfg.appsScriptUrl) return;
+  const payload = { ...data, driveLinks: Object.entries(driveLinks).map(([name, url]) => ({ name, url })) };
+  try {
+    await fetch(cfg.appsScriptUrl, { method: 'POST', body: JSON.stringify(payload) });
+  } catch (e) { console.warn('Email notification failed:', e); }
+}
+
+// ── Drive upload ───────────────────────────────────────────────────────────
+async function uploadToDrive(file) {
+  const meta = { name: file.name, mimeType: file.type };
+  if (cfg.folderId) meta.parents = [cfg.folderId];
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+  form.append('file', file);
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+    method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken }, body: form
+  });
+  if (!res.ok) throw new Error((await res.json()).error?.message);
+  const d = await res.json();
+  return d.webViewLink || `https://drive.google.com/file/d/${d.id}/view`;
+}
+
+// ── preview ────────────────────────────────────────────────────────────────
+async function previewPDF() {
+  const data = collectData();
+  if (!data.name) { setStatus('Enter your name first.'); return; }
+  setStatus('Generating preview…');
+  try {
+    const doc = await buildPDF(data, files.filter(f => f.type.startsWith('image/')), files.filter(f => f.type === 'application/pdf'), {});
+    window.open(URL.createObjectURL(doc.output('blob')), '_blank');
+    setStatus('');
+  } catch (e) { setStatus('Preview error: ' + e.message); }
+}
+
+// ── submit ─────────────────────────────────────────────────────────────────
+async function submitReport() {
+  const data = collectData();
+  if (!data.name) { setStatus('Please enter your name.'); return; }
+  setBtn(true);
+  const imageFiles = files.filter(f => f.type.startsWith('image/'));
+  const pdfFiles   = files.filter(f => f.type === 'application/pdf');
+  const driveLinks = {};
+
+  if (accessToken) {
+    setStatus('Uploading receipts…'); setProgress(10);
+    const all = [...imageFiles, ...pdfFiles];
+    for (let i = 0; i < all.length; i++) {
+      try { driveLinks[all[i].name] = await uploadToDrive(all[i]); } catch (e) { console.warn(e); }
+      setProgress(10 + ((i + 1) / all.length) * 35);
+    }
+  }
+
+  if (accessToken && cfg.sheetId) {
+    setStatus('Saving to sheet…'); setProgress(50);
+    const ts = new Date().toISOString();
+    const base = [ts, data.name, data.email, data.dept, data.title, data.period];
+    const valueRows = [
+      ...data.expenseItems.map(r => [...base, r.merchant, r.desc, r.cat, r.date, '', r.amount, data.notes, Object.values(driveLinks).join(', ')]),
+      ...data.mileageItems.map(r => [...base, r.merchant, r.desc, 'Mileage', r.date, r.miles, r.amount, data.notes, Object.values(driveLinks).join(', ')])
+    ];
+    try {
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${cfg.sheetId}/values/${encodeURIComponent(cfg.sheetRange)}:append?valueInputOption=USER_ENTERED`, {
+        method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: valueRows })
+      });
+    } catch (e) { console.warn(e); }
+  }
+
+  setStatus('Sending email notification…'); setProgress(65);
+  await sendEmailNotification(data, driveLinks);
+
+  setStatus('Generating PDF…'); setProgress(75);
+  try {
+    const doc = await buildPDF(data, imageFiles, pdfFiles, driveLinks);
+    setProgress(95);
+    const safeName  = (data.name  || 'expense').replace(/\s+/g, '_');
+    const safeTitle = (data.title || 'report').replace(/\s+/g, '_');
+    doc.save(`${safeName}_${safeTitle}_${data.period || 'report'}.pdf`);
+    setProgress(100);
+    setStatus('');
+    showSuccess('Report submitted! PDF downloaded and notification sent to office & sshor@hollismontessori.org.');
+  } catch (e) { setStatus('PDF error: ' + e.message); }
+
+  setBtn(false);
+  setTimeout(() => setProgress(0), 1500);
+}
+
+// ── helpers ────────────────────────────────────────────────────────────────
+function setBtn(d) { document.getElementById('submitBtn').disabled = d; document.getElementById('previewBtn').disabled = d; }
+function setProgress(pct) {
+  const bar = document.getElementById('progressBar');
+  bar.style.display = pct > 0 && pct < 100 ? 'block' : 'none';
+  document.getElementById('progressBarInner').style.width = pct + '%';
+}
+function setStatus(msg) { document.getElementById('statusMsg').textContent = msg; }
+function showSuccess(msg) {
+  const b = document.getElementById('successBanner');
+  document.getElementById('successMsg').textContent = msg;
+  b.style.display = 'flex';
+  setTimeout(() => { b.style.display = 'none'; }, 8000);
+}
+function clearForm() {
+  ['empName','empEmail','empDept','reportTitle','notes'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('expenseRows').innerHTML = '';
+  document.getElementById('mileageRows').innerHTML = '';
+  document.getElementById('mileageToggle').checked = false;
+  document.getElementById('mileageSection').style.display = 'none';
+  rows = []; mileageRowIds = []; files = [];
+  renderFiles(); addRow(); addRow(); calcTotals();
+}
+function copyScript() {
+  navigator.clipboard.writeText(document.getElementById('appsScriptCode').textContent);
+  event.target.textContent = 'Copied!';
+  setTimeout(() => { event.target.textContent = 'Copy script'; }, 2000);
+}
+
+// ── init ───────────────────────────────────────────────────────────────────
+addRow(); addRow();
+document.getElementById('reportPeriod').value = new Date().toISOString().slice(0, 7);
+</script>
+</body>
+</html>
